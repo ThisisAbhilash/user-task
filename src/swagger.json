@@ -1,0 +1,713 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Staff Schedule Management System"
+  },
+  "basePath": "/api",
+  "schemes": "http",
+  "securityDefinitions": {
+    "AccessToken": { "type": "apiKey", "in": "header", "name": "Authorization" },
+    "RefreshToken": { "type": "apiKey", "in": "header", "name": "x-refresh-token" }
+  },
+  "definitions": {
+    "User": {
+      "required": ["type"],
+      "properties": {
+        "email": { "type": "string", "example": "user@gmail.com", "required": true },
+        "userName": { "type": "string", "example": "i_am_john", "required": true },
+        "password": { "type": "string", "example": "password", "required": true },
+        "roles": { "type": "string", "example": "STAFF_USER", "required": true }
+      }
+    },
+    "Login": {
+      "required": ["type"],
+      "properties": {
+        "email": { "type": "string", "example": "user@gmail.com", "required": true },
+        "password": { "type": "string", "example": "password", "required": true }
+      }
+    },
+    "Schedule": {
+      "required": ["type"],
+      "properties": {
+        "userId": { "type": "string", "required": true },
+        "workDate": { "type": "date", "example": "2020-08-08T00:00:00.000Z", "required": true },
+        "shiftLength": { "type": "number", "example": "8", "required": true }
+      }
+    }
+  },
+  "paths": {
+    "/status": {
+      "get": {
+        "tags": ["HEALTH"],
+        "summary": "check status of the server",
+        "responses": {
+          "200": {
+            "description": "api status",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "api status"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["HEALTH"],
+        "summary": "check health of the server",
+        "responses": {
+          "200": {
+            "description": "server health",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "version"
+                },
+                "version": {
+                  "type": "string",
+                  "description": "version"
+                },
+                "mongo": {
+                  "type": "object",
+                  "description": "mongo health"
+                },
+                "redis": {
+                  "type": "object",
+                  "description": "redis health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/signup": {
+      "post": {
+        "tags": ["AUTH"],
+        "summary": "sign-up as a user",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to sign up a user",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/login": {
+      "post": {
+        "tags": ["AUTH"],
+        "summary": "login",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to login a user",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Login"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "tags": ["AUTH"],
+        "summary": "logged in user's details",
+        "security": [{
+          "AccessToken": []
+        }],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "unauthorized",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/login-refresh": {
+      "post": {
+        "tags": ["AUTH"],
+        "summary": "login using refresh token",
+        "security": [{
+          "RefreshToken": []
+        }],
+        "parameters": [
+          {
+            "in": "headers",
+            "name": "x-refresh-token",
+            "description": "refresh token to use",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/logout": {
+      "post": {
+        "tags": ["AUTH"],
+        "summary": "logout",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "headers",
+            "name": "Authorization",
+            "description": "bearer token",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "success"
+          }
+        }
+      }
+    },
+    "/v1/user": {
+      "get": {
+        "tags": ["USER"],
+        "summary": "get all user list - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "text",
+            "description": "text to search for",
+            "required": false,
+            "schema": { "type": "string", "example": "john" }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "number of records to skip (index starts at 0)",
+            "required": false,
+            "schema": { "type": "number", "example": 1 }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "number of records to limit",
+            "required": false,
+            "schema": { "type": "number", "example": 10 }
+          },
+          {
+            "in": "query",
+            "name": "roles",
+            "description": "roles to filter for",
+            "required": false,
+            "type": "array",
+            "items": { "type": "string", "example": "ADMIN" }
+          },
+          {
+            "in": "query",
+            "name": "sortOn",
+            "description": "data field to sort on",
+            "required": false,
+            "schema": { "type": "string", "example": "createdAt" }
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "description": "asc or desc",
+            "required": false,
+            "type": "string",
+            "example": "asc",
+            "enum": ["asc", "desc"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["USER"],
+        "summary": "create a user - allowed for [Admin]",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to create a user",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/user/{_id}": {
+      "patch": {
+        "tags": ["USER"],
+        "summary": "update a user - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_id",
+            "description": "user _id to update",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to update a user",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/User"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "403": {
+            "description": "not allowed",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["USER"],
+        "summary": "delete a user - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_id",
+            "description": "user _id to delete",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "403": {
+            "description": "not allowed",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/schedule": {
+      "get": {
+        "tags": ["SCHEDULE"],
+        "summary": "get schedule list - allowed for [Admin & Staff User]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "userId",
+            "description": "_id of user to search for",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "query",
+            "name": "scheduleId",
+            "description": "_id of schedule to search for",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "description": "number of records to skip (index starts at 0)",
+            "required": false,
+            "schema": { "type": "number", "example": 1 }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "number of records to limit",
+            "required": false,
+            "schema": { "type": "number", "example": 10 }
+          },
+          {
+            "in": "query",
+            "name": "sortOn",
+            "description": "data field to sort on",
+            "required": false,
+            "schema": { "type": "string", "example": "createdAt" }
+          },
+          {
+            "in": "query",
+            "name": "sortBy",
+            "description": "asc or desc",
+            "required": false,
+            "type": "string",
+            "example": "asc",
+            "enum": ["asc", "desc"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["SCHEDULE"],
+        "summary": "create a schedule - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to create a schedule",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Schedule"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/v1/schedule/{_id}": {
+      "patch": {
+        "tags": ["SCHEDULE"],
+        "summary": "update a schedule - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_id",
+            "description": "schedule _id to patch",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "payload to update a schedule",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Task"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["SCHEDULE"],
+        "summary": "delete a schedule - allowed for [Admin]",
+        "security": [{
+          "AccessToken": []
+        }],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "_id",
+            "description": "task _id to delete",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "success",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "400": {
+            "description": "bad request",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "un-authorized",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "403": {
+            "description": "not allowed",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "500": {
+            "description": "internal server error",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}
